@@ -83,11 +83,20 @@ async function getFeed(userId, limit=10, cursor) {
        query, params
     );
 
-    return result.rows
+    const postResults = result.rows
+
+    return postResults
 }
+
+
 
 async function getCommentsForAllPosts(postIds) {
     try {
+
+          
+        
+
+
         const result = await pool.query(
             `
                 SELECT * FROM comments
@@ -97,6 +106,8 @@ async function getCommentsForAllPosts(postIds) {
             [postIds]
         )
 
+        const comments = result.rows
+        return comments
         
     } catch (error) {
         throw new Error(error.message)
@@ -104,5 +115,6 @@ async function getCommentsForAllPosts(postIds) {
 }
 
 module.exports = {
-    getFeed
+    getFeed,
+    getCommentsForAllPosts
 }
