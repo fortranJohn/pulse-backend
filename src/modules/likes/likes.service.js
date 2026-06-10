@@ -32,12 +32,10 @@ async function likePost(userId, postId) {
     } finally {
         client.release()
     }
-
-
-   
-
    
 }
+
+
 
 async function unlikePost(userId, postId) {
     const client = await pool.connect()

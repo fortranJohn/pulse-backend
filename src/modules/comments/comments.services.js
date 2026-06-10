@@ -62,6 +62,78 @@ async function createComment(userId, postId, content) {
     }
 }
 
+async function likeComment(userId, commentId) {
+    const client = await pool.connect()
+
+    try {
+        await client.query("BEGIN")
+        await client.query(
+            `
+                INSERT INTO comment_likes (user_id, comment_id)
+                VALUES ($1, $2);
+            `,
+            [userId, commentId]
+        )
+
+        await client.query(
+            `
+                UPDATE comments
+                SET likes_count = likes_count + 1
+                WHERE id = $1
+            `,
+            [commentId]
+        )
+
+        await client.query("COMMIT")
+    } catch (error) {
+        await client.query("ROLLBACK")
+        throw error
+    } finally {
+        client.release()
+    }
+}
+
+async function unlikeComment(userId, commentId) {
+    const client = await pool.connect()
+    try {
+        
+        await client.query("BEGIN")
+        const result = await client.query(
+            `
+                DELETE FROM comment_likes
+                WHERE user_id = $1
+                AND comment_id = $2
+                RETURNING *
+            `,
+            [userId, commentId]
+        )
+
+        if(result.rowCount === 0){
+            throw new Error("comment not liked yet")
+        }
+
+        await client.query(
+            `
+                UPDATE comments
+                SET likes_count = likes_count - 1
+                WHERE id = $1
+            `,
+            [commentId]
+        )
+
+        await client.query("COMMIT")
+
+
+    } catch (error) {
+       await client.query("ROLLBACK")
+       throw error
+    } finally {
+        client.release()
+    }
+}
+
 module.exports = {
-    createComment
+    createComment,
+    likeComment,
+    unlikeComment
 }

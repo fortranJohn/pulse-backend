@@ -1,6 +1,5 @@
 
-
-const { likePost, unlikePost } = require("./likes.service")
+const { likePost, unlikePost, likeComment } = require("./likes.service")
 
 
 
@@ -60,6 +59,7 @@ async function handleUnlikePost(req, res) {
 
     
 }
+
 
 module.exports = {
     handleLikePost, handleUnlikePost

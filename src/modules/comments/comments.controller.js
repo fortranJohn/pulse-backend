@@ -1,4 +1,4 @@
-const { createComment } = require("./comments.services")
+const { createComment, likeComment, unlikeComment } = require("./comments.services")
 
 
 async function handleCreateComment(req, res) {
@@ -25,6 +25,53 @@ async function handleCreateComment(req, res) {
     }
 }
 
+async function handleLikeComment(req, res) {
+    try {
+        const userId = req.user.userId
+        const commentId = req.params.commentId
+
+        const likeComm = await likeComment(userId, commentId)
+
+        res.status(201).json({
+            likeComm,
+            message: "Comment liked"
+        })
+    } catch (error) {
+        if(error.code === "23505"){
+            return res.status(409).json({
+                error: "Already unliked"
+            })
+        }
+        return res.status(500).json({
+            error:error.message
+        })
+    }
+}
+
+async function handleUnlikeComment(req, res){
+    try {
+        const userId = req.user.userId
+        const commentId = req.params.commentId
+
+        const unlikeComm = await unlikeComment(userId, commentId)
+
+        res.status(201).json({
+            unlikeComm,
+            message: "Unliked comment"
+        })
+    } catch (error) {
+         if(error.code === "23505"){
+            return res.status(409).json({
+                error: "Already unliked"
+            })
+        }
+        return res.status(500).json({
+            error: error.message
+        })
+    }
+}
+
+
 module.exports = {
-    handleCreateComment
+    handleCreateComment, handleLikeComment, handleUnlikeComment
 }
