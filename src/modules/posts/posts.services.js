@@ -14,6 +14,7 @@ async function createPost(userId, content) {
 }
 
 
+
 module.exports = {
     createPost
 }

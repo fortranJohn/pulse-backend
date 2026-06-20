@@ -132,8 +132,112 @@ async function unlikeComment(userId, commentId) {
     }
 }
 
+async function createReply(userId, commentId, content) {
+    const client = await pool.connect()
+    try {
+       await client.query("BEGIN")
+
+       const parentCommentResult = await client.query(
+        `
+            SELECT id, post_id
+            FROM comments
+            WHERE id = $1
+        `,
+        [commentId]
+       )
+
+       if(parentCommentResult.rowCount ===0){
+        throw new Error("Parent comment not found")
+       }
+       const parentComment = parentCommentResult.rows[0]
+
+       const replyResult = await client.query(
+        `
+            INSERT INTO comments (post_id, user_id, content, parent_comment_id)
+            VALUES ($1, $2, $3, $4)
+            RETURNING *
+
+        `,
+        [parentComment.post_id, userId, content, commentId]
+       )
+
+       await client.query(
+        `
+            UPDATE posts
+            SET comments_count = comments_count + 1
+            WHERE id = $1
+        `,
+        [parentComment.post_id]
+       )
+
+       await client.query("COMMIT")
+       return replyResult.rows[0]
+
+
+    } catch (error) {
+        await client.query("ROLLBACK")
+        throw error
+    } finally {
+        client.release()
+    }
+}
+
+async function getCommentsForPost( postId, limit=10, cursor=null) {
+    // const client = await pool.connect()
+    const params = [postId]
+    
+    let cursorIndex = ""
+
+    if(cursor){
+        cursorIndex = "AND comments.created_at <  $2"
+        params.push(cursor)
+    }
+
+    params.push(limit)
+       
+        const result = await pool.query(
+            `
+                SELECT comments.id, comments.parent_comment_id, comments.user_id, comments.content, comments.likes_count, comments.created_at, users.name AS author_name
+                FROM comments
+                JOIN users ON users.id = comments.user_id
+                WHERE comments.post_id = $1
+                ${cursor ? cursorIndex : ""}
+                ORDER BY comments.created_at DESC
+                LIMIT $${params.length}
+            `,
+           params
+        )
+
+       const comments = result.rows
+
+    //    Building commentMap
+    const commentsMap = {}
+    for (const comment of comments ) {
+        commentsMap[comment.id] = {
+            ...comment,
+            replies:[]
+        }
+    }
+       
+     for (const comment of Object.values(commentsMap)) {
+        const parentId = comment.parent_comment_id;
+
+        if (parentId && commentsMap[parentId]) {
+            commentsMap[parentId]?.replies.push(comment);
+        }
+    }
+      const commentTree = Object.values(commentsMap)
+        .filter(comment => comment.parent_comment_id === null);
+
+    return commentTree;
+}
+
+
+
 module.exports = {
     createComment,
     likeComment,
-    unlikeComment
+    unlikeComment,
+    createReply,
+    getCommentsForPost
 }

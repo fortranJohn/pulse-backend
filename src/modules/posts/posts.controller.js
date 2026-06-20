@@ -1,4 +1,4 @@
-const { createPost } = require("./posts.services");
+const { createPost, getCommentsForPost } = require("./posts.services");
 
 
 
@@ -27,6 +27,8 @@ async function handleCreatePost(req, res) {
     }
 }
 
+
+
 module.exports = {
-    handleCreatePost
+    handleCreatePost,
 }

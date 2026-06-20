@@ -1,4 +1,4 @@
-const { createComment, likeComment, unlikeComment } = require("./comments.services")
+const { createComment, likeComment, unlikeComment, getCommentsForPost, createReply } = require("./comments.services")
 
 
 async function handleCreateComment(req, res) {
@@ -71,7 +71,71 @@ async function handleUnlikeComment(req, res){
     }
 }
 
+async function handleCreateReply(req, res) {
+   
+
+    try {
+            const userId = req.user.userId
+            const commentId = req.params.commentId
+            const content = req.body.content
+
+            if(!content || !content.trim()){
+                return res.status(400).json({
+                    message: "Content cannot be empty"
+                })
+            }
+
+
+            const reply = await createReply(userId, commentId, content.trim())
+
+            res.status(201).json({
+                reply,
+                message:"reply created"
+            })
+
+    } catch (error) {
+        if(error.message === "Parent comment not found"){
+            return res.status(404).json({
+                error:error.message
+            })
+        }
+        return res.status(500).json({
+            error:error.message
+        })
+    }
+}
+
+async function handleGetCommentsForPost(req, res) {
+    try {
+        // const userId = req.user.userId
+        const limit = parseInt(req.query.limit) || 10
+        const postId = req.params.postId
+        const cursor = req.query.cursor || null
+        
+        const postComments = await getCommentsForPost( postId, limit, cursor )
+
+        const nextCursor = postComments.length > 0 
+        ? postComments[postComments.length - 1].created_at : null
+
+
+        res.status(200).json({
+            postComments,
+            pagination: {
+                limit,
+                nextCursor
+            }
+           
+        })
+    } catch (error) {
+            return res.status(500).json({
+                error: error.message
+            })
+    }
+}
+
+
+
 
 module.exports = {
-    handleCreateComment, handleLikeComment, handleUnlikeComment
+    handleCreateComment, handleLikeComment, handleUnlikeComment, handleCreateReply, handleGetCommentsForPost
 }

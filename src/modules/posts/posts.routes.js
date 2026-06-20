@@ -6,5 +6,6 @@ const router = express.Router()
 
 
 router.post("/", authenticate, handleCreatePost)
+// router.get("/:postId/comments", authenticate, handleGetCommentsForPost)
 
 module.exports = router
